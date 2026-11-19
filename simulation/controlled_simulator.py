@@ -14,6 +14,7 @@ def run_controlled_simulation(
     simulation_time=5.0,
     dt=0.1,
     segment_size=10,
+    initial_angle=0.0,
 ):
     """
     Misma fisica que run_simulation; al terminar cada segmento el controlador
@@ -26,6 +27,7 @@ def run_controlled_simulation(
         fuel_mass=rocket.initial_fuel_mass,
         area=rocket.area,
         thrust=rocket.thrust,
+        angle=initial_angle,
     )
 
     keys = ["time", "x", "y", "vx", "vy", "mass", "angle"]
