@@ -31,13 +31,14 @@ st.set_page_config(
 )
 
 
-def run_ai_simulation(rocket, wind, ideal, controller, duration, dt, segment_size):
+def run_ai_simulation(rocket, wind, ideal, controller, duration, dt, segment_size, initial_angle=0.0):
 
     state = RocketState(
         mass=rocket.dry_mass + rocket.initial_fuel_mass,
         fuel_mass=rocket.initial_fuel_mass,
         area=rocket.area,
-        thrust=rocket.thrust
+        thrust=rocket.thrust,
+        angle=initial_angle
     )
 
     history = {
@@ -172,6 +173,11 @@ with st.sidebar:
     st.caption("CONFIGURACIÓN DE MISIÓN")
     with st.expander("01 · Escenario", expanded=True):
         duration = st.slider("Duración (s)", 2.0, 10.0, 5.0, 0.5)
+        launch_angle_deg = st.slider(
+                "Ángulo de lanzamiento respecto a la vertical (°)",
+                 -60, 60, 0, 5
+        )
+        launch_angle = math.radians(launch_angle_deg)
         wind = st.slider("Fuerza horizontal (N)", 0.0, 500.0, 200.0, 10.0)
         dt = st.select_slider("Intervalo temporal (s)", options=[0.05,0.1,0.2], value=0.1)
         segment_size = st.slider("Pasos por segmento", 5, 20, 10)
@@ -251,13 +257,35 @@ if run_clicked:
         rocket = Rocket(dry_mass=dry_mass, initial_fuel_mass=fuel_mass,
                         thrust=thrust, specific_impulse=isp, cd=cd, area=area)
         with st.spinner("Procesando los cuatro escenarios..."):
-            ideal = run_simulation(rocket, 0.0, simulation_time=duration, dt=dt)
-            perturbed = run_simulation(rocket, wind, simulation_time=duration, dt=dt)
+            ideal = run_simulation(
+                rocket, 0.0,
+                initial_angle=launch_angle,
+                simulation_time=duration,
+                dt=dt
+            )
+
+            perturbed = run_simulation(
+                rocket, wind,
+                initial_angle=launch_angle,
+                simulation_time=duration,
+                dt=dt
+            )
             ls_controller = LeastSquaresController()
-            ls = run_ls_simulation(rocket, wind, ideal, ls_controller,
-                                   simulation_time=duration, dt=dt, segment_size=segment_size)
+            ls = run_ls_simulation(
+                rocket, wind, ideal, ls_controller,
+                simulation_time=duration,
+                dt=dt,
+                segment_size=segment_size,
+                initial_angle=launch_angle
+            )
+
             ai_controller = RocketAIController()
-            ai = run_ai_simulation(rocket, wind, ideal, ai_controller, duration, dt, segment_size)
+
+            ai = run_ai_simulation(
+                rocket, wind, ideal, ai_controller,
+                duration, dt, segment_size,
+                initial_angle=launch_angle
+            )
             metrics = {
                 "Perturbada": trajectory_metrics(ideal, perturbed),
                 "Mínimos cuadrados": trajectory_metrics(ideal, ls),
